@@ -44,14 +44,52 @@ int FB(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados)
 bool poda_factibilidad = true; // define si la poda por factibilidad esta habilitada.
 bool poda_optimalidad = true; // define si la poda por optimalidad esta habilitada.
 int mayor_beneficio = INFTY; // Mejor solucion hasta el momento.
-int BT(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados, bool adyacente)
+int BT(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados)
 {
 	// Caso base.
     if (i == cantidad_locales)
     {
-    	if (suma_contagio <= limite_contagio && !adyacente) mayor_beneficio = max(mayor_beneficio, suma_beneficio);
-        if (i == cantidad_locales) return suma_contagio <= limite_contagio && !adyacente ? suma_beneficio : INFTY;
+		//chequeamos que no haya adyacentes
+		int j = 0;
+		while (j < cantidad_locales - 1 && !(seleccionados[j] && seleccionados[j+1])) 
+			j++;
+		//actualizamos la maxima solución global si es solución
+		if (suma_contagio <= limite_contagio && j == cantidad_locales - 1) 
+			mayor_beneficio = max(mayor_beneficio, suma_beneficio);
+        return suma_contagio <= limite_contagio && j == cantidad_locales - 1 ? suma_beneficio : INFTY;
     }
+
+    // Poda por factibilidad.
+    if (poda_factibilidad && suma_contagio > limite_contagio ) return INFTY;
+
+    // Poda por optimalidad.
+    if (poda_optimalidad){
+		// Recorremos todos los locales que nos faltan y sumamos sus beneficios
+		int suma_faltantes = suma_beneficio;
+		for (int j = i ; j < cantidad_locales ; j+=2)
+			suma_faltantes += locales[j].first;
+		if(suma_faltantes <= mayor_beneficio)
+			return INFTY;
+	} 
+
+    // Recursión.
+	int noAgregoLocal = BT(i + 1, suma_contagio, suma_beneficio, seleccionados);
+	
+	seleccionados[i] = true;
+	int agregoLocal = BT(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionados);		
+	return max(noAgregoLocal,agregoLocal);
+	
+}
+//reducimos la complejidad temporal
+int BT2(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados, bool adyacente)
+{
+	// Caso base.
+    if (i == cantidad_locales)
+    {
+    	if (suma_contagio <= limite_contagio && !adyacente) 
+			mayor_beneficio = max(mayor_beneficio, suma_beneficio);
+        return suma_contagio <= limite_contagio && !adyacente ? suma_beneficio : INFTY;
+	}
 
     // Poda por factibilidad.
     if (poda_factibilidad && suma_contagio > limite_contagio && adyacente) return INFTY;
@@ -67,25 +105,16 @@ int BT(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados,
 	} 
 
     // Recursión.
-	// Utilizamos la variable adyacente para chequear si seleccionamos locales que están adyacentes
-	// En caso de hacerlo no creamos un nuevo vector que representa la solución parcial y le pasamos el mismo
-	// esperamos que esto reduzca la complejidad espacial y en el caso de la optimalidad resulta más beneficioso
-	if(!adyacente){
-		vector<bool> seleccionarActual = seleccionados;
-		seleccionarActual[i] = true;		
-		return max(BT(i + 1, suma_contagio, suma_beneficio, seleccionados, adyacente),
-				BT(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionarActual, i!=0? seleccionarActual[i-1]: adyacente));
-	}
-	else {
-		return max(BT(i + 1, suma_contagio, suma_beneficio, seleccionados, adyacente),
-					BT(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionados, adyacente));
-	}
+	int noAgregoLocal = BT2(i + 1, suma_contagio, suma_beneficio, seleccionados, adyacente);
+	seleccionados[i] = true;
+	int agregoLocal = BT2(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionados, (i!=0 && !adyacente) ? seleccionados[i-1] : adyacente);		
+	return max(noAgregoLocal,agregoLocal);
 }
 
-vector<vector<int>> M; // Memoria de PD.
-const int UNDEFINED = -1;
-// PD(i, w): minimo cardinal de un subconjunto de {Si, ... , Sn} que sume W−w.
-/*int PD(int i, int w)
+vector<vector<int>> M; // Memoria de PD. creo que la dimension de la matriz tiene que ser de (cantidad_locales + 1)x(limite_contagio + 1)
+const int UNDEFINED = -1; //inicializamos la estructura con -1
+// PD(i, seleccionados, adyacente): beneficio máximo obtenido a partir de un subconjunto {Li, ... , Ln} de locales abiertos no adyacentes que no superen el limite de contagio.
+/*int PD(int i, vector<bool> seleccionados, bool adyacente)
 {
 	if (w > M) return INFTY;
 	if (i == n && w != W) return INFTY;
@@ -102,7 +131,7 @@ int main(int argc, char** argv)
 	// Leemos el parametro que indica el algoritmo a ejecutar.
 	map<string, string> algoritmos_implementados = {
 		{"FB", "Fuerza Bruta"}, {"BT", "Backtracking con podas"}, {"BT-F", "Backtracking con poda por factibilidad"}, 
-		{"BT-O", "Backtracking con poda por optimalidad"}, {"DP", "Programacion dinámica"}
+		{"BT-O", "Backtracking con poda por optimalidad"},{"BT2", "Backtracking con podas"} ,{"DP", "Programacion dinámica"}
 	};
 
 	// Verificar que el algoritmo pedido exista.
@@ -132,21 +161,27 @@ int main(int argc, char** argv)
 	{
 		mayor_beneficio = INFTY;
 		poda_optimalidad = poda_factibilidad = true;
-		optimum = BT(0, 0, 0, vector<bool>(cantidad_locales, false), false);
+		optimum = BT(0, 0, 0, vector<bool>(cantidad_locales, false));
+	}
+	else if (algoritmo == "BT2")
+	{
+		mayor_beneficio = INFTY;
+		poda_optimalidad = poda_factibilidad = true;
+		optimum = BT2(0, 0, 0, vector<bool>(cantidad_locales, false), false);
 	}
 	else if (algoritmo == "BT-F")
 	{
 		mayor_beneficio = INFTY;
 		poda_optimalidad = false;
 		poda_factibilidad = true;
-		optimum = BT(0, 0, 0, vector<bool>(cantidad_locales, false), false);
+		optimum = BT(0, 0, 0, vector<bool>(cantidad_locales, false));
 	}
 	else if (algoritmo == "BT-O")
 	{
 		mayor_beneficio = INFTY;
 		poda_optimalidad = true;
 		poda_factibilidad = false;
-		optimum = BT(0, 0, 0, vector<bool>(cantidad_locales, false), false);
+		optimum = BT(0, 0, 0, vector<bool>(cantidad_locales, false));
 	}
 	/*else if (algoritmo == "DP")
 	{
@@ -169,7 +204,7 @@ int main(int argc, char** argv)
     cout << (optimum == INFTY ? -1 : optimum) << endl;
     return 0;
 }/*
-./npm "FB"
+./npm "BT2"
 5 40
 50 10 
 25 10 
