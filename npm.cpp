@@ -18,11 +18,11 @@ int cantidad_locales, limite_contagio;
 // M = valor del límite de contagio
 vector<pair<int, int>> locales;
 
+//=================================FUERZA BRUTA=================================================
 // i : la posicion del local dentro de la lista de locales.
 // suma_contagio : suma del valor de contagio hasta este local.
-// suma_beneficio : beneficio sumado hasta ahora.
 // seleccionados : locales seleccionados hasta ahora.
-int FB(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados){
+int FB(int i, int suma_contagio,int suma_beneficio, vector<bool> seleccionados){
 	//Caso base.
 	if ( i == cantidad_locales ) {
 		int j = 0;
@@ -32,15 +32,16 @@ int FB(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados)
 	}
 	else {
 		// Recursión.
-		vector<bool> seleccionarActual = seleccionados;
-		seleccionarActual[i] = true;
-		return max(FB(i + 1, suma_contagio, suma_beneficio, seleccionados), FB(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionarActual));
+		int noAgregoLocal = FB(i + 1, suma_contagio, suma_beneficio ,seleccionados);
+		seleccionados[i] = true;
+		int agregoLocal = FB(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first , seleccionados) ;
+		return max(noAgregoLocal,agregoLocal );
 	}
 }
-
+//=================================BACKTRACKING=================================================
 // i: la posicion del local dentro de la lista de locales.
 // suma_contagio : suma del valor de contagio hasta este local.
-// suma_beneficio : beneficio sumado hasta ahora.
+// suma_beneficio : beneficio sumado hasta ahora. (es utilizado para la poda de optimalidad)
 bool poda_factibilidad = true; // define si la poda por factibilidad esta habilitada.
 bool poda_optimalidad = true; // define si la poda por optimalidad esta habilitada.
 int mayor_beneficio = INFTY; // Mejor solucion hasta el momento.
@@ -76,7 +77,7 @@ int BT(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados)
 	int noAgregoLocal = BT(i + 1, suma_contagio, suma_beneficio, seleccionados);
 	
 	seleccionados[i] = true;
-	int agregoLocal = BT(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionados);		
+	int agregoLocal = BT(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionados);
 	return max(noAgregoLocal,agregoLocal);
 	
 }
@@ -110,7 +111,7 @@ int BT2(int i, int suma_contagio, int suma_beneficio, vector<bool> seleccionados
 	int agregoLocal = BT2(i + 1, suma_contagio + locales[i].second, suma_beneficio + locales[i].first, seleccionados, (i!=0 && !adyacente) ? seleccionados[i-1] : adyacente);		
 	return max(noAgregoLocal,agregoLocal);
 }
-
+//=================================PROGRAMACION DINAMICA=================================================
 vector<vector<int>> M; // Memoria de PD. creo que la dimension de la matriz tiene que ser de (cantidad_locales + 1)x(limite_contagio + 1)
 const int UNDEFINED = -1; //inicializamos la estructura con -1
 // PD(i, seleccionados, adyacente): beneficio máximo obtenido a partir de un subconjunto {Li, ... , Ln} de locales abiertos no adyacentes que no superen el limite de contagio.
@@ -190,7 +191,6 @@ int main(int argc, char** argv)
 		for (int i = 0; i < n+1; ++i)
 			for (int j = 0; j < W+1; ++j)
 				PD(i, j);
-
 		// Obtenemos la solucion optima.
 		optimum = PD(0, 0);
 	}*/
