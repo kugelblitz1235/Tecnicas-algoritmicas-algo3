@@ -61,7 +61,10 @@ int NPM_bt(int i, int contagio, int beneficio)
     if (poda_optimalidad){
 		// Recorremos todos los locales que nos faltan y sumamos sus beneficios
 		int suma_faltantes = beneficio;
-		for (int j = i; j <cantidad_locales; j+=2) suma_faltantes += locales[j].first;
+		for (int j = i; j < cantidad_locales && suma_faltantes <= mayor_beneficio; j+=2){
+			suma_faltantes += locales[j].first;
+			//cerr<<suma_faltantes<<" ";
+		} //cerr<<endl;
 		//si la suma total no supera el mayor beneficio obtenido hasta ahora, podamos la rama
 		if(suma_faltantes <= mayor_beneficio) 
 			return INFTY;
@@ -83,7 +86,7 @@ int NPM_pd(int i, int contagio)
 	
 	if(memo[i][contagio] == UNDEFINED){
 		// Recursión:
-		memo[i][contagio] = max(NPM_fb(i + 1, contagio), NPM_fb(i + 2, contagio + locales[i].second) + locales[i].first);
+		memo[i][contagio] = max(NPM_pd(i + 1, contagio), NPM_pd(i + 2, contagio + locales[i].second) + locales[i].first);
 	}
 	return memo[i][contagio];
 }
@@ -96,8 +99,7 @@ int main(int argc, char** argv)
 	// Leemos el parametro que indica el algoritmo a ejecutar.
 	map<string, string> algoritmos_implementados = {
 		{"FB", "Fuerza Bruta"}, {"BT", "Backtracking con podas"}, {"BT-F", "Backtracking con poda por factibilidad"}, 
-		{"BT-O", "Backtracking con poda por optimalidad"},{"BT2", "Backtracking alternativo con podas"} ,{"DP", "Programacion dinámica"},
-		{"DP-SP", "Programacion dinámica sin valores precomputados"}
+		{"BT-O", "Backtracking con poda por optimalidad"},{"BT2", "Backtracking alternativo con podas"} ,{"DP", "Programacion dinámica"}
 	};
 
 	// Verificar que el algoritmo pedido exista.
@@ -119,7 +121,8 @@ int main(int argc, char** argv)
 	int beneficio_optimo = INFTY;
 	auto start = chrono::steady_clock::now();
 	if (algoritmo == "FB")
-	{//solucion optima indicando con un entero el ultimo elemento seleccionado para saber si hay adyacencia O(2^n)
+	{   
+		//solucion optima indicando con un entero el ultimo elemento seleccionado para saber si hay adyacencia O(2^n)
 		beneficio_optimo = NPM_fb(0,0);
 	}
 	else if (algoritmo == "BT")
@@ -151,16 +154,9 @@ int main(int argc, char** argv)
 		memo = vector<vector<int>>(cantidad_locales, vector<int>(limite_contagio + 1, UNDEFINED));
 		//precomputamos los valores 
 		for(int i = cantidad_locales-1; i >= 0; i--)
-			for(int j = 0 ; j < limite_contagio+1 ; j++)
+			for(int j = limite_contagio ; j >=0  ; j--)
 				NPM_pd(i, j);
 		//obtenemos el beneficio optimo O(n*M)
-		beneficio_optimo = NPM_pd(0, 0);
-	}
-	else if (algoritmo == "DP-SP")
-	{
-		// inicializamos la estructura de memoizacion
-		memo = vector<vector<int>>(cantidad_locales, vector<int>(limite_contagio + 1, UNDEFINED));
-		//obtenemos el beneficio optimo sin precomputar O(2^n)
 		beneficio_optimo = NPM_pd(0, 0);
 	}
 	auto end = chrono::steady_clock::now();
