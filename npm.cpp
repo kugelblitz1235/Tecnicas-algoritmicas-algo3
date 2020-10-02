@@ -11,6 +11,7 @@
 using namespace std;
 
 int INFTY = -10e6; // Valor para indicar que no hubo solución.
+int ADYACENTE = -2;
 
 // Información de la instancia a resolver.
 int cantidad_locales, limite_contagio;
@@ -61,10 +62,11 @@ int NPM_bt(int i, int contagio, int beneficio)
     if (poda_optimalidad){
 		// Recorremos todos los locales que nos faltan y sumamos sus beneficios
 		int suma_faltantes = beneficio;
-		for (int j = i; j < cantidad_locales && suma_faltantes <= mayor_beneficio; j+=2){
+		for (int j = i; j < cantidad_locales && suma_faltantes <= mayor_beneficio; j++){
 			suma_faltantes += locales[j].first;
-			//cerr<<suma_faltantes<<" ";
-		} //cerr<<endl;
+		}
+		//DBG(mayor_beneficio);
+		//DBG(suma_faltantes); 
 		//si la suma total no supera el mayor beneficio obtenido hasta ahora, podamos la rama
 		if(suma_faltantes <= mayor_beneficio) 
 			return INFTY;
@@ -72,6 +74,7 @@ int NPM_bt(int i, int contagio, int beneficio)
 	//Recursion
 	return max(NPM_bt(i + 1, contagio,beneficio), NPM_bt(i + 2, contagio + locales[i].second,beneficio+locales[i].first));
 }
+
 
 //=================================PROGRAMACION DINAMICA=================================================
 vector<vector<int>> memo; // Memoria de PD de dimensión (cantidad_locales)x(suma_contagio + 1)
@@ -99,7 +102,7 @@ int main(int argc, char** argv)
 	// Leemos el parametro que indica el algoritmo a ejecutar.
 	map<string, string> algoritmos_implementados = {
 		{"FB", "Fuerza Bruta"}, {"BT", "Backtracking con podas"}, {"BT-F", "Backtracking con poda por factibilidad"}, 
-		{"BT-O", "Backtracking con poda por optimalidad"},{"BT2", "Backtracking alternativo con podas"} ,{"DP", "Programacion dinámica"}
+		{"BT-O", "Backtracking con poda por optimalidad"},{"DP", "Programacion dinámica"}
 	};
 
 	// Verificar que el algoritmo pedido exista.
@@ -122,12 +125,12 @@ int main(int argc, char** argv)
 	auto start = chrono::steady_clock::now();
 	if (algoritmo == "FB")
 	{   
-		//solucion optima indicando con un entero el ultimo elemento seleccionado para saber si hay adyacencia O(2^n)
+		//O(2^n)
 		beneficio_optimo = NPM_fb(0,0);
 	}
 	else if (algoritmo == "BT")
 	{
-		//solucion con menos complejidad espacial, utilizando un entero para indicar la adyacencia O(n 2^n)
+		//O(n 2^n)
 		mayor_beneficio = INFTY;
 		poda_optimalidad = true;
 		poda_factibilidad = true;
@@ -135,7 +138,7 @@ int main(int argc, char** argv)
 	}
 	else if (algoritmo == "BT-F")
 	{	
-		//O(2^n)
+		
 		mayor_beneficio = INFTY;
 		poda_optimalidad = false;
 		poda_factibilidad = true;
