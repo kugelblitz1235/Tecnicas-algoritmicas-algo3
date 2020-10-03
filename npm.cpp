@@ -40,7 +40,7 @@ int NPM_fb(int i, int contagio){ //es llamada como NPM(0, 0);
 		return contagio <= limite_contagio? 0 : INFTY;
 		
 	// Recursión:
-	return max(NPM_fb(i + 1, contagio), NPM_fb(i + 2, contagio + locales[i].second) + locales[i].first);
+	return max(NPM_fb(i + 2, contagio + locales[i].second) + locales[i].first,NPM_fb(i + 1, contagio));
 }
 //=================================BACKTRACKING=================================================
 bool poda_factibilidad = true; // define si la poda por factibilidad esta habilitada.
@@ -72,7 +72,7 @@ int NPM_bt(int i, int contagio, int beneficio)
 			return INFTY;
 	} 
 	//Recursion
-	return max(NPM_bt(i + 1, contagio,beneficio), NPM_bt(i + 2, contagio + locales[i].second,beneficio+locales[i].first));
+	return max(NPM_bt(i + 2, contagio + locales[i].second,beneficio+locales[i].first),NPM_bt(i + 1, contagio,beneficio));
 }
 
 
@@ -89,7 +89,7 @@ int NPM_pd(int i, int contagio)
 	
 	if(memo[i][contagio] == UNDEFINED){
 		// Recursión:
-		memo[i][contagio] = max(NPM_pd(i + 1, contagio), NPM_pd(i + 2, contagio + locales[i].second) + locales[i].first);
+		memo[i][contagio] = max(NPM_pd(i + 2, contagio + locales[i].second) + locales[i].first,NPM_pd(i + 1, contagio));
 	}
 	return memo[i][contagio];
 }
